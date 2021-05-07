@@ -9,6 +9,12 @@ img_path_list = [
     'assets/5.jpg'
 ]
 
+# img_path_list = [
+#   'plan_experience/1.png',
+#   'plan_experience/2.png',
+#   'plan_experience/3.png',
+#   'plan_experience/4.png'
+# ]
 
 for id, img_path in enumerate(img_path_list):
     img = cv.imread(img_path)
