@@ -87,9 +87,9 @@ for index, y_diff_sorted in enumerate(ys_diff_sorted):
 # src1, alpha, src2, beta, 0.0
 lines_edges = cv2.addWeighted(img, 0.2, line_image, 0.8, 0)
 
-
-# Show result
+# crop around our 9 lines
 crop_img = lines_edges[y_min-padding:y_max+padding, x_min-padding:x_max+padding]
+# Show result
 cv2.imshow("Result Image", crop_img)
 
 cv2.waitKey(0)
