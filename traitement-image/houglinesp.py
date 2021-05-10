@@ -28,15 +28,16 @@ for img_path in img_path_list:
 
   # Convert the image to gray-scale
   gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+  cv2.imshow('gray', gray)
+  cv2.waitKey(0)
   ret, thresh1 = cv2.threshold(gray,140,255,cv2.THRESH_BINARY)
-  # cv2.imshow("Result Image", thresh1)
-  # kernel_size = 5
-  # blur_gray = cv2.GaussianBlur(gray,(kernel_size, kernel_size),0)
+  cv2.imshow('binary', thresh1)
+  cv2.waitKey(0)
 
   # Find the edges in the image using canny detector
   low_threshold = 50
   high_threshold = 200
-  # edges = cv2.Canny(blur_gray, low_threshold, high_threshold, apertureSize=3)
+
 
   rho = 1  # distance resolution in pixels of the Hough grid
   theta = np.pi / 180  # angular resolution in radians of the Hough grid
@@ -55,8 +56,9 @@ for img_path in img_path_list:
     for x1,y1,x2,y2 in line:
       cv2.line(line_image,(x1,y1),(x2,y2),(0,255,0),2)
 
-  # cv2.imshow('lines', line_image)
-  # cv2.waitKey(0)
+  detected_lines = cv2.addWeighted(img, 0.2, line_image, 0.8, 0)
+  cv2.imshow('detected lines', detected_lines)
+  cv2.waitKey(0)
 
   a = HoughBundler()
   processed_lines = a.process_lines(houghP_lines, thresh1)
@@ -64,16 +66,14 @@ for img_path in img_path_list:
   for line in processed_lines:
     cv2.line(line_image_2,(line[0][0], line[0][1]), (line[1][0], line[1][1]),(0,255,0),2)
 
-  # cv2.imshow('lines_2', line_image_2)
-  # cv2.waitKey(0)
+  merged_lines = cv2.addWeighted(img, 0.2, line_image_2, 0.8, 0)
+  cv2.imshow('merged_lines', merged_lines)
+  cv2.waitKey(0)
 
-  # print(len(processed_lines))
   ys = []
   ys_diff = []
 
   for line in processed_lines:
-    # image, start_point, end_point, color, thickness
-    # cv2.line(line_image, (line[0][0], line[0][1]), (line[1][0], line[1][1]), (255,0,0), 5)
     ys.append((line[0][1] + line[1][1]) / 2)
 
   mid_height = new_height // 2
@@ -88,6 +88,7 @@ for img_path in img_path_list:
   y_max = 0
   for y_diff_sorted in ys_diff_sorted:
     line = processed_lines[ys_diff.index(y_diff_sorted)]
+    # image, start_point, end_point, color, thickness
     cv2.line(line_image_3, (line[0][0], line[0][1]), (line[1][0], line[1][1]), (255,0,0), 5)
     current_x_min = min(line[0][0], line[1][0])
     current_x_max = max(line[0][0], line[1][0])
@@ -100,26 +101,29 @@ for img_path in img_path_list:
     
   # Draw the lines on the  image
   # src1, alpha, src2, beta, 0.0
-  lines_edges = cv2.addWeighted(img, 0.2, line_image_3, 0.8, 0)
-  # cv2.imshow('lines_edges', lines_edges)
-  # cv2.waitKey(0)
+  glue_bead_lines = cv2.addWeighted(img, 0.2, line_image_3, 0.8, 0)
+  cv2.imshow('glue_bead_lines', glue_bead_lines)
+  cv2.waitKey(0)
   
   # crop around our 9 lines
   padding = 50
   crop_img = img[y_min-padding:y_max+padding, x_min-padding:x_max+padding]
-  # Show result
-  # cv2.imshow("Result Image", crop_img)
-  # cv2.waitKey(0)
+  cv2.imshow("cropped", crop_img)
+  cv2.waitKey(0)
 
   gray = cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY)
+  cv2.imshow("gray", gray)
+  cv2.waitKey(0)
+
   ret,thresh = cv2.threshold(gray,140,255,0)
-  # cv2.imshow("Result Image", thresh)
-  # cv2.waitKey(0)
+  cv2.imshow("binary", thresh)
+  cv2.waitKey(0)
 
   cnts,hierarchy = cv2.findContours(thresh, 1, 2)
-  # cv2.drawContours(crop_img, c, -1, (0,255,0), 1)
+
   current_index = -1
   degrees = []
+  crop_img_copy = crop_img.copy()
   for index, c in enumerate(cnts):
     if cv2.contourArea(c) < 1500:
       continue
@@ -127,28 +131,32 @@ for img_path in img_path_list:
     if current_index == 0:
       continue
 
-    cv2.drawContours(crop_img, cnts, index, (0,255,0), 1)
+    cv2.drawContours(crop_img_copy, cnts, index, (0,255,0), 1)
     extLeft = tuple(c[c[:, :, 0].argmin()][0])
     extRight = tuple(c[c[:, :, 0].argmax()][0])
     adjacent = extRight[0] - extLeft[0]
     oppose = extRight[1] - extLeft[1]
     hypotenuse = math.sqrt(adjacent**2 + oppose**2)
     degrees.append(math.atan(oppose / adjacent))
-    # x,y,w,h = cv2.boundingRect(c)
-    # cv2.putText(crop_img, str(w), (x,y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
-    # cv2.rectangle(crop_img, (x, y), (x + w, y + h), (36,255,12), 1)
+
+  cv2.imshow("contours", crop_img_copy)
+  cv2.waitKey(0)
+
   correction_angle = math.degrees(mean(degrees))
-
-  # cv2.imshow("Result Image", crop_img)
-  # cv2.waitKey(0)
-
   rotated = imutils.rotate(crop_img, correction_angle)
 
+  cv2.imshow("rotated", rotated)
+  cv2.waitKey(0)
+
   gray = cv2.cvtColor(rotated, cv2.COLOR_BGR2GRAY)
+  cv2.imshow("gray", gray)
+  cv2.waitKey(0)
+
   ret,thresh = cv2.threshold(gray,140,255,0)
+  cv2.imshow("binary", thresh)
+  cv2.waitKey(0)
 
   cnts,hierarchy = cv2.findContours(thresh, 1, 2)
-  # cv2.drawContours(crop_img, c, -1, (0,255,0), 1)
   
   current_index = -1
   lines_height = []
@@ -159,24 +167,9 @@ for img_path in img_path_list:
     current_index += 1
     if current_index == 0:
       continue
-    
-    top = []
-    bot = []
-    latest_x = None
-    for [[x,y]] in c:
-      print(x, y)
 
-    # cv2.drawContours(rotated, cnts, index, (0,255,0), 1)
-    # extLeft = tuple(c[c[:, :, 0].argmin()][0])
-    # extRight = tuple(c[c[:, :, 0].argmax()][0])
-    # adjacent = extRight[0] - extLeft[0]
-    # oppose = extRight[1] - extLeft[1]
-    # hypotenuse = math.sqrt(adjacent**2 + oppose**2)
-    # degrees.append(math.atan(oppose / adjacent))
     x,y,w,h = cv2.boundingRect(c)
     lines_height.append((y + y + h) / 2)
-    # cv2.putText(rotated, str(h), (x,y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
-    # cv2.rectangle(rotated, (x, y), (x + w, y + h), (36,255,12), 1)
 
   height_diffs = []
   for index, line_height in enumerate(lines_height):
